@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Install necessary dependencies
+apt-get update
+apt-get -y install software-properties-common
+
+# Add HAProxy repository and install it
+add-apt-repository ppa:vbernat/haproxy-1.8 -y
+apt-get update
+apt-get -y install haproxy
+
+# Enable HAProxy on startup
+echo "ENABLED=1" | sudo tee -a /etc/default/haproxy
+
+# Configure HAProxy with your web servers
+cat <<EOF | sudo tee /etc/haproxy/haproxy.cfg
+# HAProxy configuration to balance traffic between two web servers
+global
+    log 127.0.0.1 local0
+
+defaults
+    log     global
+    option  httplog
+    timeout connect 5000ms
+    timeout client  50000ms
+    timeout server  50000ms
+
+frontend http_front
+    bind *:80
+    default_backend http_back
+
+backend http_back
+    balance roundrobin
+    server 6325-web-01 35.172.186.17:80 check
+    server 6325-web-02 3.80.87.226:80 check
+EOF
+
+# Restart HAProxy to apply the new configuration
+sudo service haproxy restart
+

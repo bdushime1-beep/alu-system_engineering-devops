@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
-#comments
-sudo chmod -R 755 /etc/nginx/
-sudo pkill -9 apache2
-sudo sed -i 's/8080/8081/g' /etc/apache2/ports.conf
-sudo service apache2 restart
-su nginx -c "sed -i 's/80/8080/g' /etc/nginx/sites-enabled/default"
-su nginx service nginx restart
+# Runs nginx as the nginx user and makes it listen on port 8080
+command -v nginx > /dev/null || { apt-get update; apt-get -y install nginx; }
+id nginx > /dev/null 2>&1 || useradd -r -s /usr/sbin/nologin nginx
+pkill apache2
+pkill nginx
+sed -i 's/^\s*#\?\s*user .*;/user nginx;/' /etc/nginx/nginx.conf
+sed -i 's#^pid .*;#pid /tmp/nginx.pid;#' /etc/nginx/nginx.conf
+sed -i 's/listen 80 /listen 8080 /; s/\[::\]:80 /[::]:8080 /' /etc/nginx/sites-enabled/default
+chmod 644 /etc/nginx/nginx.conf
+chown -R nginx:nginx /var/log/nginx /var/lib/nginx 2>/dev/null
+su -s /bin/bash nginx -c "nginx"
